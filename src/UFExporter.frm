@@ -14,6 +14,22 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
+
+' # ------------------------------------------------------------------------------
+' # Name:        UFExporter.frm
+' # Purpose:     Core UserForm for the CSV Exporter Excel VBA Add-In
+' #
+' # Author:      Brian Skinn
+' #                bskinn@alum.mit.edu
+' #
+' # Created:     24 Jan 2016
+' # Copyright:   (c) Brian Skinn 2016-2017
+' # License:     The MIT License; see "LICENSE.txt" for full license terms.
+' #
+' #       http://www.github.com/bskinn/excel-csvexporter
+' #
+' # ------------------------------------------------------------------------------
+
 Option Explicit
 
 ' =====  CONSTANTS  =====
@@ -28,7 +44,14 @@ Dim fs As FileSystemObject
 ' =====  FORM EVENTS  =====
 
 Private Sub BtnClose_Click()
+    ' Set the startup-position setting to 'Manual', so that the form
+    '  will re-open where the user last placed it instead of in the
+    '  center of the Excel window
+    Me.StartUpPosition = 0  ' vbStartUpManual
+    
+    ' Hide the form without Unloading
     UFExporter.Hide
+    
 End Sub
 
 Private Sub BtnExport_Click()
@@ -63,22 +86,6 @@ Private Sub BtnExport_Click()
     
     ' Bind the text stream
     Set tStrm = fs.OpenTextFile(filePath, mode, True, TristateUseDefault)
-    
-'    ' Check if wanting to append or overwrite
-'    If ChBxAppend.Value Then
-'        ' Wanting append
-'        ' Just open for append
-'        If fs.FileExists(filePath) Then
-'            ' Open as append
-'            set tstrm = fs.OpenTextFile(filepath, ForAppending
-'        Else
-'
-'        End If
-'
-'    Else
-'        ' Wanting overwrite. Just clobber.
-'        Set tStrm = fs.CreateTextFile(filePath, True, False)
-'    End If
     
     ' Ready to go. Pass info to writing function
     writeCSV Selection, tStrm, TxBxFormat.Value, TxBxSep.Value
