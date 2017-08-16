@@ -14,6 +14,21 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
+' # ------------------------------------------------------------------------------
+' # Name:        UFExporter.frm
+' # Purpose:     Core UserForm for the CSV Exporter Excel VBA Add-In
+' #
+' # Author:      Brian Skinn
+' #                bskinn@alum.mit.edu
+' #
+' # Created:     24 Jan 2016
+' # Copyright:   (c) Brian Skinn 2016-2017
+' # License:     The MIT License; see "LICENSE.txt" for full license terms.
+' #
+' #       http://www.github.com/bskinn/excel-csvexporter
+' #
+' # ------------------------------------------------------------------------------
+
 Option Explicit
 
 ' =====  CONSTANTS  =====
