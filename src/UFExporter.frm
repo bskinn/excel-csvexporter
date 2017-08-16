@@ -28,7 +28,14 @@ Dim fs As FileSystemObject
 ' =====  FORM EVENTS  =====
 
 Private Sub BtnClose_Click()
+    ' Set the startup-position setting to 'Manual', so that the form
+    '  will re-open where the user last placed it instead of in the
+    '  center of the Excel window
+    Me.StartUpPosition = 0  ' vbStartUpManual
+    
+    ' Hide the form without Unloading
     UFExporter.Hide
+    
 End Sub
 
 Private Sub BtnExport_Click()
