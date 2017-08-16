@@ -14,6 +14,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
+
 ' # ------------------------------------------------------------------------------
 ' # Name:        UFExporter.frm
 ' # Purpose:     Core UserForm for the CSV Exporter Excel VBA Add-In
@@ -85,22 +86,6 @@ Private Sub BtnExport_Click()
     
     ' Bind the text stream
     Set tStrm = fs.OpenTextFile(filePath, mode, True, TristateUseDefault)
-    
-'    ' Check if wanting to append or overwrite
-'    If ChBxAppend.Value Then
-'        ' Wanting append
-'        ' Just open for append
-'        If fs.FileExists(filePath) Then
-'            ' Open as append
-'            set tstrm = fs.OpenTextFile(filepath, ForAppending
-'        Else
-'
-'        End If
-'
-'    Else
-'        ' Wanting overwrite. Just clobber.
-'        Set tStrm = fs.CreateTextFile(filePath, True, False)
-'    End If
     
     ' Ready to go. Pass info to writing function
     writeCSV Selection, tStrm, TxBxFormat.Value, TxBxSep.Value
