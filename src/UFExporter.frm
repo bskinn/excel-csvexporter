@@ -1,7 +1,7 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} UFExporter 
    Caption         =   "Export Data Range"
-   ClientHeight    =   3480
+   ClientHeight    =   4080
    ClientLeft      =   45
    ClientTop       =   375
    ClientWidth     =   4560
@@ -23,7 +23,7 @@ Attribute VB_Exposed = False
 ' #                bskinn@alum.mit.edu
 ' #
 ' # Created:     24 Jan 2016
-' # Copyright:   (c) Brian Skinn 2016-2017
+' # Copyright:   (c) Brian Skinn 2016-2019
 ' # License:     The MIT License; see "LICENSE.txt" for full license terms.
 ' #
 ' #       http://www.github.com/bskinn/excel-csvexporter
@@ -32,13 +32,33 @@ Attribute VB_Exposed = False
 
 Option Explicit
 
+' ===== EVENT-ENABLED APPLICATION =====
+Private WithEvents appn As Application
+Attribute appn.VB_VarHelpID = -1
+
+
 ' =====  CONSTANTS  =====
 Const NoFolderStr As String = "<none>"
+Const InvalidSelStr As String = "<invalid selection>"
 
 
 ' =====  GLOBALS  =====
 Dim WorkFolder As Folder
 Dim fs As FileSystemObject
+Dim ExportRange As Range
+
+
+' =====  EVENT-ENABLED APPLICATION EVENTS  =====
+
+Private Sub appn_SheetActivate(ByVal Sh As Object)
+    setExportRange
+    setExportRangeText
+End Sub
+
+Private Sub appn_SheetSelectionChange(ByVal Sh As Object, ByVal Target As Range)
+    setExportRange
+    setExportRangeText
+End Sub
 
 
 ' =====  FORM EVENTS  =====
@@ -62,15 +82,26 @@ Private Sub BtnExport_Click()
     
     ' Proofread the range -- only one area allowed
     If Selection.Areas.Count <> 1 Then
-        Call MsgBox("Multiple selected areas not supported!", vbExclamation + vbOKOnly, _
-                "Invalid Selection")
+        Call MsgBox( _
+            "Export of multiple areas is not supported!", _
+            vbExclamation + vbOKOnly, _
+            "Invalid Selection" _
+        )
+        
         Exit Sub
     End If
     
     ' Reject if entire column or row is selected
-    If Selection.Rows.Count = Rows.Count Or Selection.Columns.Count = Columns.Count Then
-        Call MsgBox("Cannot output entire rows or columns!", vbExclamation + vbOKOnly, _
-                "Invalid Selection")
+    If ( _
+        Selection.Rows.Count = Rows.Count _
+        Or Selection.Columns.Count = Columns.Count _
+    ) Then
+        Call MsgBox( _
+            "Cannot output entire rows or columns!", _
+            vbExclamation + vbOKOnly, _
+            "Invalid Selection" _
+        )
+        
         Exit Sub
     End If
     
@@ -88,7 +119,7 @@ Private Sub BtnExport_Click()
     Set tStrm = fs.OpenTextFile(filePath, mode, True, TristateUseDefault)
     
     ' Ready to go. Pass info to writing function
-    writeCSV Selection, tStrm, TxBxFormat.Value, TxBxSep.Value
+    writeCSV ExportRange, tStrm, TxBxFormat.Value, TxBxSep.Value
     
     ' Close the stream
     tStrm.Close
@@ -128,7 +159,7 @@ End Sub
 Private Sub TxBxFilename_Change()
 
     ' If filename is nonzero-length and valid, enable Export and set color black
-    If Len(TxBxFilename.Value) > 0 And validFilename(TxBxFilename.Value) Then
+    If validFilename(TxBxFilename.Value) Then
         TxBxFilename.ForeColor = RGB(0, 0, 0)
     Else
         TxBxFilename.ForeColor = RGB(255, 0, 0)
@@ -146,12 +177,23 @@ Private Sub TxBxSep_Change()
     setExportEnabled
 End Sub
 
+Private Sub UserForm_Activate()
+    ' Always update the export range info box when
+    ' focus is gained
+    setExportRange
+    setExportRangeText
+    
+End Sub
+
 Private Sub UserForm_Initialize()
     ' Set to no folder selected
     TxBxFolder.Value = NoFolderStr
     
     ' Link filesystem
     Set fs = CreateObject("Scripting.FileSystemObject")
+    
+    ' Link Application for events
+    Set appn = Application
     
     ' Default is for filename to be empty; disable export button
     BtnExport.Enabled = False
@@ -169,10 +211,13 @@ End Sub
 
 Private Sub setExportEnabled()
 
-    If (Len(TxBxFilename.Value) > 0) And (Len(TxBxSep.Value) > 0) And _
-            (validFilename(TxBxFilename.Value)) And _
-            (Len(TxBxFormat.Value) > 0) And _
-            (Not WorkFolder Is Nothing) Then
+    If ( _
+        Len(TxBxSep.Value) > 0 And _
+        validFilename(TxBxFilename.Value) And _
+        Len(TxBxFormat.Value) > 0 And _
+        (Not WorkFolder Is Nothing) And _
+        (Not ExportRange Is Nothing) _
+    ) Then
         BtnExport.Enabled = True
     Else
         BtnExport.Enabled = False
@@ -229,5 +274,44 @@ Function validFilename(fName As String) As Boolean
     
 End Function
 
+Private Sub setExportRangeText()
+    ' Helper to set the export range info text
+    
+    Dim workStr As String
+    
+    If Not TypeOf Selection Is Range Then Exit Sub
+    
+    workStr = "  Worksheet: " _
+        & Selection.Parent.Name _
+        & Chr(10) _
+        & "  Range: " _
+        & getExportRangeAddress
+    
+    LblExportRg.Caption = workStr
+    
+End Sub
 
+Private Sub setExportRange()
+    ' Proofing of Selection, to see if it's valid -- plus,
+    ' implementing the reduction of the export range to
+    ' Intersect(UsedRange, Selection) when whole rows/columns
+    ' are selected.
+    
+    'If Selection.Areas.Count <> 1 Then
+    '    Set ExportRange = Nothing
+    'Else
+        Set ExportRange = Selection
+    'End If
+    
+End Sub
 
+Private Function getExportRangeAddress() As String
+    ' Helper to generate the export range address without dollar signs
+    
+    If ExportRange Is Nothing Then
+        getExportRangeAddress = InvalidSelStr
+    Else
+        getExportRangeAddress = ExportRange.Address(RowAbsolute:=False, ColumnAbsolute:=False)
+    End If
+    
+End Function
