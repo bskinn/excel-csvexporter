@@ -51,13 +51,23 @@ Dim ExportRange As Range
 ' =====  EVENT-ENABLED APPLICATION EVENTS  =====
 
 Private Sub appn_SheetActivate(ByVal Sh As Object)
+    ' Update the export range object, the
+    ' export range reporting text, and the
+    ' status of the 'Export' button any time a sheet
+    ' is switched to
     setExportRange
     setExportRangeText
+    setExportEnabled
 End Sub
 
 Private Sub appn_SheetSelectionChange(ByVal Sh As Object, ByVal Target As Range)
+    ' Update the export range object, the
+    ' export range reporting text, and the
+    ' status of the 'Export' button any time
+    ' a new cell selection is made
     setExportRange
     setExportRangeText
+    setExportEnabled
 End Sub
 
 
@@ -81,34 +91,34 @@ Private Sub BtnExport_Click()
     ' Should only ever be possible to click if form is in a good state for exporting
     
     ' Proofread the range -- only one area allowed
-    If Selection.Areas.Count <> 1 Then
-        Call MsgBox( _
-            "Export of multiple areas is not supported!", _
-            vbExclamation + vbOKOnly, _
-            "Invalid Selection" _
-        )
-        
-        Exit Sub
-    End If
+    'If Selection.Areas.Count <> 1 Then
+    '    Call MsgBox( _
+    '        "Export of multiple areas is not supported!", _
+    '        vbExclamation + vbOKOnly, _
+    '        "Invalid Selection" _
+    '    )
+    '
+    '    Exit Sub
+    'End If
     
     ' Reject if entire column or row is selected
-    If ( _
-        Selection.Rows.Count = Rows.Count _
-        Or Selection.Columns.Count = Columns.Count _
-    ) Then
-        Call MsgBox( _
-            "Cannot output entire rows or columns!", _
-            vbExclamation + vbOKOnly, _
-            "Invalid Selection" _
-        )
-        
-        Exit Sub
-    End If
+    'If ( _
+    '    Selection.Rows.Count = Rows.Count _
+    '    Or Selection.Columns.Count = Columns.Count _
+    ') Then
+    '    Call MsgBox( _
+    '        "Cannot output entire rows or columns!", _
+    '        vbExclamation + vbOKOnly, _
+    '        "Invalid Selection" _
+    '    )
+    '
+    '    Exit Sub
+    'End If
     
     ' Store full file path
     filePath = fs.BuildPath(WorkFolder.Path, TxBxFilename.Value)
     
-    ' Convert append setting to mode
+    ' Convert append setting to IOMode
     If ChBxAppend.Value Then
         mode = ForAppending
     Else
@@ -297,11 +307,16 @@ Private Sub setExportRange()
     ' Intersect(UsedRange, Selection) when whole rows/columns
     ' are selected.
     
-    'If Selection.Areas.Count <> 1 Then
-    '    Set ExportRange = Nothing
-    'Else
-        Set ExportRange = Selection
-    'End If
+    If Selection.Areas.Count <> 1 Then
+        Set ExportRange = Nothing
+    Else
+        If Selection.Address = Selection.EntireRow.Address Or _
+                Selection.Address = Selection.EntireColumn.Address Then
+            Set ExportRange = Intersect(Selection, Selection.Parent.UsedRange)
+        Else
+            Set ExportRange = Selection
+        End If
+    End If
     
 End Sub
 
