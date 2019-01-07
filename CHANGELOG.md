@@ -8,10 +8,29 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### [Unreleased]
 
+#### Added
+
+ * New information box on the form indicates the sheet and range of
+   cells currently set to be exported
+
 #### Changed
+
  * UserForm now reappears in its prior location when closed
    and re-opened, instead of always reappearing in the center
    of the Excel window.
+ * Selection of multiple areas now results in an "<invalid selection>"
+   message in the new information box; and, greying out of the 'Export'
+   button instead of a warning message after clicking 'Export'
+ * Selection of entire rows/columns now sets for export the intersection
+   of the selection and the UsedRange of the worksheet. Selection of an
+   entire row/column outside the UsedRange of the worksheet gives an
+   "<invalid selection>" message in the new information box
+
+#### Fixed
+
+ * Userform now disappears when a chart-sheet is selected, and reappears
+   when a worksheet is re-selected. Userform will silently refuse to open
+   if triggered when a chart-sheet is active
 
 ### [1.0.0] - 2016-01-30
 

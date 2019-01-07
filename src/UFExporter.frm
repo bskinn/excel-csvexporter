@@ -46,6 +46,7 @@ Const InvalidSelStr As String = "<invalid selection>"
 Dim WorkFolder As Folder
 Dim fs As FileSystemObject
 Dim ExportRange As Range
+Dim HiddenByChart As Boolean
 
 
 ' =====  EVENT-ENABLED APPLICATION EVENTS  =====
@@ -55,6 +56,29 @@ Private Sub appn_SheetActivate(ByVal Sh As Object)
     ' export range reporting text, and the
     ' status of the 'Export' button any time a sheet
     ' is switched to
+    
+    ' If a chartsheet is selected by the user, hide the form and
+    ' sit quietly.
+    If TypeOf Sh Is Chart Then
+        ' Only set the hidden-by-chart flag if the form was visible
+        ' when the chart was activated
+        If UFExporter.Visible Then
+            HiddenByChart = True
+            UFExporter.Hide
+        End If
+        
+        ' Always want to not update things when a chart sheet is selected
+        Exit Sub
+    Else
+        ' Only need to do something special here if the form
+        ' was hidden by navigation onto a chart, in which case
+        ' it's desired to reset the flag and re-show the form.
+        If HiddenByChart Then
+            HiddenByChart = False
+            UFExporter.Show
+        End If
+    End If
+    
     setExportRange
     setExportRangeText
     setExportEnabled
@@ -89,31 +113,6 @@ Private Sub BtnExport_Click()
     Dim filePath As String, tStrm As TextStream, mode As IOMode
     
     ' Should only ever be possible to click if form is in a good state for exporting
-    
-    ' Proofread the range -- only one area allowed
-    'If Selection.Areas.Count <> 1 Then
-    '    Call MsgBox( _
-    '        "Export of multiple areas is not supported!", _
-    '        vbExclamation + vbOKOnly, _
-    '        "Invalid Selection" _
-    '    )
-    '
-    '    Exit Sub
-    'End If
-    
-    ' Reject if entire column or row is selected
-    'If ( _
-    '    Selection.Rows.Count = Rows.Count _
-    '    Or Selection.Columns.Count = Columns.Count _
-    ') Then
-    '    Call MsgBox( _
-    '        "Cannot output entire rows or columns!", _
-    '        vbExclamation + vbOKOnly, _
-    '        "Invalid Selection" _
-    '    )
-    '
-    '    Exit Sub
-    'End If
     
     ' Store full file path
     filePath = fs.BuildPath(WorkFolder.Path, TxBxFilename.Value)
@@ -189,7 +188,14 @@ End Sub
 
 Private Sub UserForm_Activate()
     ' Always update the export range info box when
-    ' focus is gained
+    ' focus is gained, unless a show/focus attempt
+    ' is made when a chart-sheet is active
+    
+    If TypeOf ActiveSheet Is Chart Then
+        UFExporter.Hide
+        Exit Sub
+    End If
+    
     setExportRange
     setExportRangeText
     
