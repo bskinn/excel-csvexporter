@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
  * New information box on the form indicates the sheet and range of
    cells currently set to be exported
+ * New warning added, if the separator appears in the data to be exported;
+   this should minimize accidental generation of files that cannot be
+   used subsequently, due to the excess separator characters
 
 #### Changed
 
@@ -31,6 +34,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
  * Userform now disappears when a chart-sheet is selected, and reappears
    when a worksheet is re-selected. Userform will silently refuse to open
    if triggered when a chart-sheet is active
+ * Error handling added around folder selection and output file opening
+   for write/append
 
 ### [1.0.0] - 2016-01-30
 

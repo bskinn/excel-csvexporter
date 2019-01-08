@@ -127,8 +127,26 @@ Private Sub BtnExport_Click()
     
     Dim filePath As String, tStrm As TextStream, mode As IOMode
     Dim errNum As Long
+    Dim resp As VbMsgBoxResult
     
     ' Should only ever be possible to click if form is in a good state for exporting
+    
+    ' Check whether separator appears in the data to be exported;
+    ' advise and query user if so
+    If isSeparatorInData(ExportRange, TxBxFormat.Value, TxBxSep.Value) Then
+        resp = MsgBox( _
+                    "Separator is present in data to be exported!" & _
+                    Chr(10) & Chr(10) & _
+                    "This may cause the generated file to load incorrectly." & _
+                    Chr(10) & Chr(10) & Chr(10) & _
+                    "Continue with export?", _
+                vbOKCancel + vbExclamation, _
+                "Separator Present in Data" _
+        )
+        
+        If resp = vbCancel Then Exit Sub
+        
+    End If
     
     ' Store full file path
     filePath = fs.BuildPath(WorkFolder.Path, TxBxFilename.Value)
@@ -363,6 +381,7 @@ Private Sub writeCSV(dataRg As Range, tStrm As TextStream, nFormat As String, _
     Dim cel As Range
     Dim idxRow As Long, idxCol As Long
     Dim workStr As String
+    Dim errNum As Long
 
     
     ' Loop
@@ -379,14 +398,24 @@ Private Sub writeCSV(dataRg As Range, tStrm As TextStream, nFormat As String, _
         ' Cull the trailing separator
         workStr = Left(workStr, Len(workStr) - Len(Separator))
         
-        ' Write the line
-        tStrm.WriteLine workStr
+        ' Write the line, with error-handling
+        On Error Resume Next
+            tStrm.WriteLine workStr
+        errNum = Err.Number: Err.Clear: On Error GoTo 0
+        
+        If errNum <> 0 Then
+            MsgBox "Unknown error occurred while writing data line", _
+                    vbOKOnly + vbCritical, _
+                    "Error"
+            
+            Exit Sub
+        End If
         
     Next idxRow
     
 End Sub
 
-Function validFilename(fName As String) As Boolean
+Private Function validFilename(fName As String) As Boolean
     ' Helper to confirm that an entered filename is valid.
     ' Checks for nonzero length, and no characters that are
     ' invalid for Windows filenames.
@@ -404,5 +433,19 @@ Function validFilename(fName As String) As Boolean
     
 End Function
 
-
+Private Function isSeparatorInData(dataRg As Range, nFormat As String, _
+                                            sep As String) As Boolean
+    ' Helper function to check whether the CSV separator appears in the data
+    ' that will be exported, to allow warning the user before writing a file
+    ' that likely won't load neatly.
+    
+    Dim cel As Range
+    
+    For Each cel In dataRg
+        If InStr(Format(cel.Value, nFormat), sep) > 0 Then
+            isSeparatorInData = True
+            Exit Function
+        End If
+    Next cel
+End Function
 
