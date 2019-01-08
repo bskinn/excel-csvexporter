@@ -363,6 +363,7 @@ Private Sub writeCSV(dataRg As Range, tStrm As TextStream, nFormat As String, _
     Dim cel As Range
     Dim idxRow As Long, idxCol As Long
     Dim workStr As String
+    Dim errNum As Long
 
     
     ' Loop
@@ -379,8 +380,18 @@ Private Sub writeCSV(dataRg As Range, tStrm As TextStream, nFormat As String, _
         ' Cull the trailing separator
         workStr = Left(workStr, Len(workStr) - Len(Separator))
         
-        ' Write the line
-        tStrm.WriteLine workStr
+        ' Write the line, with error-handling
+        On Error Resume Next
+            tStrm.WriteLine workStr
+        errNum = Err.Number: Err.Clear: On Error GoTo 0
+        
+        If errNum <> 0 Then
+            MsgBox "Unknown error occurred while writing data line", _
+                    vbOKOnly + vbCritical, _
+                    "Error"
+            
+            Exit Sub
+        End If
         
     Next idxRow
     
