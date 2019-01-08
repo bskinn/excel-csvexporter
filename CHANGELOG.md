@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
  * New information box on the form indicates the sheet and range of
    cells currently set to be exported
+ * New warning added, if the separator appears in the data to be exported;
+   this should minimize accidental generation of files that cannot be
+   used subsequently, due to the excess separator characters
 
 #### Changed
 
