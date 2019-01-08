@@ -31,6 +31,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
  * Userform now disappears when a chart-sheet is selected, and reappears
    when a worksheet is re-selected. Userform will silently refuse to open
    if triggered when a chart-sheet is active
+ * Error handling added around folder selection and output file opening
+   for write/append
 
 ### [1.0.0] - 2016-01-30
 
