@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### [Unreleased]
 
+...
+
+
+### [1.1.0] - 2019-01-08
+
 #### Added
 
  * New information box on the form indicates the sheet and range of
@@ -27,7 +32,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
  * Selection of entire rows/columns now sets for export the intersection
    of the selection and the UsedRange of the worksheet. Selection of an
    entire row/column outside the UsedRange of the worksheet gives an
-   "<invalid selection>" message in the new information box
+   "<invalid selection>" message in the new information box and disables
+   the 'Export' button
 
 #### Fixed
 
