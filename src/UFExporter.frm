@@ -386,15 +386,19 @@ Private Sub writeCSV(dataRg As Range, tStrm As TextStream, nFormat As String, _
     
     ' Loop
     For idxRow = 1 To dataRg.Rows.Count
-        ' Only output visible rows
-        If ChBxOutputHidden.Value Or Not dataRg.Cells(idxRow, 1).EntireRow.Hidden Then
+        ' Only output visible rows unless hidden output indicated
+        If ChBxHiddenRows.Value Or Not dataRg.Cells(idxRow, 1).EntireRow.Hidden Then
             ' Reset the working string
             workStr = ""
             
             For idxCol = 1 To dataRg.Columns.Count
-                ' Tag on the value and a separator
-                workStr = workStr & Format(dataRg.Cells(idxRow, idxCol).Value, nFormat)
-                workStr = workStr & Separator
+                ' Tag on the value and a separator, but only if
+                ' visible or if hidden output indicated
+                If ChBxHiddenCols.Value Or _
+                        Not dataRg.Cells(idxRow, idxCol).EntireColumn.Hidden Then
+                    workStr = workStr & Format(dataRg.Cells(idxRow, idxCol).Value, nFormat)
+                    workStr = workStr & Separator
+                End If
             Next idxCol
             
             ' Cull the trailing separator
