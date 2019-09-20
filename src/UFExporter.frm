@@ -1,7 +1,7 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} UFExporter 
    Caption         =   "Export Data Range"
-   ClientHeight    =   4080
+   ClientHeight    =   4770
    ClientLeft      =   45
    ClientTop       =   375
    ClientWidth     =   4560
@@ -386,31 +386,33 @@ Private Sub writeCSV(dataRg As Range, tStrm As TextStream, nFormat As String, _
     
     ' Loop
     For idxRow = 1 To dataRg.Rows.Count
-        ' Reset the working string
-        workStr = ""
-        
-        For idxCol = 1 To dataRg.Columns.Count
-            ' Tag on the value and a separator
-            workStr = workStr & Format(dataRg.Cells(idxRow, idxCol).Value, nFormat)
-            workStr = workStr & Separator
-        Next idxCol
-        
-        ' Cull the trailing separator
-        workStr = Left(workStr, Len(workStr) - Len(Separator))
-        
-        ' Write the line, with error-handling
-        On Error Resume Next
-            tStrm.WriteLine workStr
-        errNum = Err.Number: Err.Clear: On Error GoTo 0
-        
-        If errNum <> 0 Then
-            MsgBox "Unknown error occurred while writing data line", _
-                    vbOKOnly + vbCritical, _
-                    "Error"
+        ' Only output visible rows
+        If ChBxOutputHidden.Value Or Not dataRg.Cells(idxRow, 1).EntireRow.Hidden Then
+            ' Reset the working string
+            workStr = ""
             
-            Exit Sub
+            For idxCol = 1 To dataRg.Columns.Count
+                ' Tag on the value and a separator
+                workStr = workStr & Format(dataRg.Cells(idxRow, idxCol).Value, nFormat)
+                workStr = workStr & Separator
+            Next idxCol
+            
+            ' Cull the trailing separator
+            workStr = Left(workStr, Len(workStr) - Len(Separator))
+            
+            ' Write the line, with error-handling
+            On Error Resume Next
+                tStrm.WriteLine workStr
+            errNum = Err.Number: Err.Clear: On Error GoTo 0
+            
+            If errNum <> 0 Then
+                MsgBox "Unknown error occurred while writing data line", _
+                        vbOKOnly + vbCritical, _
+                        "Error"
+                
+                Exit Sub
+            End If
         End If
-        
     Next idxRow
     
 End Sub
