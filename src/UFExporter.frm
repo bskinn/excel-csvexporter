@@ -1,7 +1,7 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} UFExporter 
    Caption         =   "Export Data Range"
-   ClientHeight    =   4770
+   ClientHeight    =   5730
    ClientLeft      =   45
    ClientTop       =   375
    ClientWidth     =   4560
@@ -14,6 +14,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
+
 
 ' # ------------------------------------------------------------------------------
 ' # Name:        UFExporter.frm
@@ -47,6 +48,7 @@ Dim WorkFolder As Folder
 Dim fs As FileSystemObject
 Dim ExportRange As Range
 Dim HiddenByChart As Boolean
+Dim wsf As worksheetfunction
 
 
 ' =====  EVENT-ENABLED APPLICATION EVENTS  =====
@@ -222,6 +224,33 @@ Private Sub BtnSelectFolder_Click()
 
 End Sub
 
+Private Sub ChBxHeaderRows_Change()
+    ' Set the header rows box colors appropriately
+    setHeaderTBxColors
+    
+    ' Update Export button
+    setExportEnabled
+    
+End Sub
+
+Private Sub TBxHeaderStart_Change()
+    ' Set header rows box colors
+    setHeaderTBxColors
+    
+    ' Update export button
+    setExportEnabled
+    
+End Sub
+
+Private Sub TBxHeaderStop_Change()
+    ' Set header rows box colors
+    setHeaderTBxColors
+    
+    ' Update export button
+    setExportEnabled
+    
+End Sub
+
 Private Sub TxBxFilename_Change()
 
     ' If filename is nonzero-length and valid, set color black.
@@ -280,6 +309,9 @@ Private Sub UserForm_Initialize()
     ' General is default number format
     TxBxFormat.Value = "@"
     
+    ' Bind the worksheet function object
+    Set wsf = Application.worksheetfunction
+    
 End Sub
 
 
@@ -294,7 +326,8 @@ Private Sub setExportEnabled()
         validFilename(TxBxFilename.Value) And _
         Len(TxBxFormat.Value) > 0 And _
         (Not WorkFolder Is Nothing) And _
-        (Not ExportRange Is Nothing) _
+        (Not ExportRange Is Nothing) And _
+        (Not (ChBxHeaderRows.Value And Not checkHeaderRowValues)) _
     ) Then
         BtnExport.Enabled = True
     Else
@@ -361,7 +394,62 @@ Private Function getExportRangeAddress() As String
     
 End Function
 
+Private Function checkHeaderRowValues() As Boolean
+    ' Proofreads the values in the row start/stop for the header inclusion
+    '
+    ' True means values are ok (numbers, and start <= stop
+    ' False means something (unspecified) is wrong;
+    '  could be non-numeric, or start > stop
+    
+    Dim errNum As Long, startRow As Long, stopRow As Long
+    Dim startStr As String, stopStr As String
+    
+    ' Cope with empty textboxes
+    If TBxHeaderStart.Value = "" Then
+        startStr = "0"
+    Else
+        startStr = TBxHeaderStart.Value
+    End If
+    
+    If TBxHeaderStop.Value = "" Then
+        stopStr = "0"
+    Else
+        stopStr = TBxHeaderStop.Value
+    End If
+    
+    ' Default to failure
+    checkHeaderRowValues = False
+    
+    On Error Resume Next
+        startRow = CInt(startStr)
+        stopRow = CInt(stopStr)
+    errNum = Err.Number: Err.Clear: On Error GoTo 0
+    
+    ' One or more non-numeric values
+    If errNum <> 0 Then Exit Function
+    
+    ' Might as well make it so an empty start row means row 1
+    startRow = Application.worksheetfunction.Max(1, startRow)
+    
+    ' Value check
+    If startRow > stopRow Then Exit Function
+    
+    ' Checks ok; return True
+    checkHeaderRowValues = True
+    
+End Function
 
+Private Sub setHeaderTBxColors()
+    ' Helper encapsulating the color setting logic
+    If checkHeaderRowValues Then
+        TBxHeaderStart.ForeColor = RGB(0, 0, 0)
+        TBxHeaderStop.ForeColor = RGB(0, 0, 0)
+    Else
+        TBxHeaderStart.ForeColor = RGB(255, 0, 0)
+        TBxHeaderStop.ForeColor = RGB(255, 0, 0)
+    End If
+    
+End Sub
 ' =====  HELPER FUNCTIONS  =====
 
 Private Sub writeCSV(dataRg As Range, tStrm As TextStream, nFormat As String, _
@@ -454,4 +542,5 @@ Private Function isSeparatorInData(dataRg As Range, nFormat As String, _
         End If
     Next cel
 End Function
+
 
