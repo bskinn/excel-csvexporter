@@ -1,7 +1,7 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} UFExporter 
    Caption         =   "Export Data Range"
-   ClientHeight    =   5730
+   ClientHeight    =   5955
    ClientLeft      =   45
    ClientTop       =   375
    ClientWidth     =   4560
@@ -14,6 +14,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
+
 
 
 ' # ------------------------------------------------------------------------------
@@ -41,6 +42,7 @@ Attribute appn.VB_VarHelpID = -1
 ' =====  CONSTANTS  =====
 Const NoFolderStr As String = "<none>"
 Const InvalidSelStr As String = "<invalid selection>"
+Const NoHeaderRngStr As String = "<no header>"
 
 
 ' =====  GLOBALS  =====
@@ -176,7 +178,14 @@ Private Sub BtnExport_Click()
     End If
     
     ' Ready to go. Pass info to writing function
-    writeCSV ExportRange, tStrm, TxBxFormat.Value, TxBxSep.Value
+    ' Header first (always exporting, even if hidden; but only if enabled)...
+    If ChBxHeaderRows.Value Then
+        writeCSV dataRg:=getHeaderRange, tStrm:=tStrm, nFormat:=TxBxFormat.Value, _
+                Separator:=TxBxSep.Value, overrideHidden:=True
+    End If
+    ' ... then body (obeying 'hidden cell export' settings)
+    writeCSV dataRg:=ExportRange, tStrm:=tStrm, nFormat:=TxBxFormat.Value, _
+            Separator:=TxBxSep.Value, overrideHidden:=False
     
     ' Close the stream
     tStrm.Close
@@ -228,6 +237,9 @@ Private Sub ChBxHeaderRows_Change()
     ' Set the header rows box colors appropriately
     setHeaderTBxColors
     
+    ' Update the range report box
+    setExportRangeText
+    
     ' Update Export button
     setExportEnabled
     
@@ -237,6 +249,9 @@ Private Sub TBxHeaderStart_Change()
     ' Set header rows box colors
     setHeaderTBxColors
     
+    ' Update the range report box
+    setExportRangeText
+    
     ' Update export button
     setExportEnabled
     
@@ -245,6 +260,9 @@ End Sub
 Private Sub TBxHeaderStop_Change()
     ' Set header rows box colors
     setHeaderTBxColors
+    
+    ' Update the range report box
+    setExportRangeText
     
     ' Update export button
     setExportEnabled
@@ -371,6 +389,9 @@ Private Sub setExportRangeText()
     workStr = "  Worksheet: " _
         & Selection.Parent.Name _
         & Chr(10) _
+        & "  Header: " _
+        & getHeaderRangeAddress _
+        & Chr(10) _
         & "  Range: " _
         & getExportRangeAddress
     
@@ -394,10 +415,68 @@ Private Function getExportRangeAddress() As String
     
 End Function
 
+Private Function getHeaderRangeAddress() As String
+    ' Helper for concise generation of the header range address
+    ' without dollar signs.
+    '
+    ' Or, if header export is deselected, report accordingly
+    
+    If ChBxHeaderRows.Value Then
+        If checkHeaderRowValues Then
+            getHeaderRangeAddress = getHeaderRange.Address( _
+                        RowAbsolute:=False, ColumnAbsolute:=False _
+            )
+        Else
+            getHeaderRangeAddress = InvalidSelStr
+        End If
+    Else
+        getHeaderRangeAddress = NoHeaderRngStr
+    End If
+    
+End Function
+
+Private Function getHeaderRange() As Range
+    ' Helper to actually generate a reference to the header range,
+    ' given the currently set export range.
+    '
+    ' If any of the form is in a state where the header range
+    ' can't be defined, returns Nothing.
+    
+    Dim headerFullRows As Range
+    Dim startRow As Long, stopRow As Long
+    Dim errNum As Long
+    
+    Set getHeaderRange = Nothing
+    
+    If Not ChBxHeaderRows.Value Then Exit Function
+    If Not checkHeaderRowValues Then Exit Function
+    If ExportRange Is Nothing Then Exit Function
+    
+    ' Handle the case where the start value is blank (implicit start at '1')
+    On Error Resume Next
+        startRow = CLng(TBxHeaderStart.Value)
+    errNum = Err.Number: Err.Clear: On Error GoTo 0
+    
+    Select Case errNum
+    Case 13
+        startRow = 1
+    End Select
+    
+    ' Stop row shouldn't(?) need special handling, given that it's already
+    ' proofed by the above checks
+    stopRow = CLng(TBxHeaderStop.Value)
+    
+    Set headerFullRows = ExportRange.Worksheet.Rows(startRow)
+    Set headerFullRows = headerFullRows.Resize(stopRow - startRow + 1)
+    
+    Set getHeaderRange = Intersect(ExportRange.EntireColumn, headerFullRows)
+
+End Function
+
 Private Function checkHeaderRowValues() As Boolean
     ' Proofreads the values in the row start/stop for the header inclusion
     '
-    ' True means values are ok (numbers, and start <= stop
+    ' True means values are ok (numbers, and start <= stop)
     ' False means something (unspecified) is wrong;
     '  could be non-numeric, or start > stop
     
@@ -453,7 +532,7 @@ End Sub
 ' =====  HELPER FUNCTIONS  =====
 
 Private Sub writeCSV(dataRg As Range, tStrm As TextStream, nFormat As String, _
-                    Separator As String)
+                    Separator As String, overrideHidden As Boolean)
     
     ' Encapsulates the process of actually writing the selected data to
     ' CSV on-disk.
@@ -475,7 +554,7 @@ Private Sub writeCSV(dataRg As Range, tStrm As TextStream, nFormat As String, _
     ' Loop
     For idxRow = 1 To dataRg.Rows.Count
         ' Only output visible rows unless hidden output indicated
-        If ChBxHiddenRows.Value Or Not dataRg.Cells(idxRow, 1).EntireRow.Hidden Then
+        If overrideHidden Or ChBxHiddenRows.Value Or Not dataRg.Cells(idxRow, 1).EntireRow.Hidden Then
             ' Reset the working string
             workStr = ""
             
