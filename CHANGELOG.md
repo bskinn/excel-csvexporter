@@ -6,13 +6,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 
-### [Unreleased]
+### [1.2.0.dev1] - 2020-02-03
+
+Development release issued, to facilitate user testing before considering
+the below new features as "final".
 
 #### Added
 
 - Hidden rows and columns now are **NOT** exported by default; checkboxes
   to enable export of hidden cells (per row and/or per-column) are
   now provided
+- An option is now provided to export the cells from one or more rows on
+  the active sheet above/below the exported data block as "header row(s)"
 
 ### [1.1.0] - 2019-01-08
 
