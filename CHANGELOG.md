@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 
+### [1.2.0.dev2] - 2020-02-07
+
+#### Fixed
+
+- Fixed RTE 91 raised when the header option is enabled and 
+  entire row(s)/column(s) are selected that do not intersect `.UsedRange`
+  (#25).
+- Due to the way Excel handles `.UsedRange` on an empty sheet (returns
+  `Range("$A$1")` instead of `Nothing`), it was necessary to add explicit
+  check for this case, in order to correctly report invalid selection
+  status when entire row(s)/column(s) are selected on an empty sheet.
+
+
 ### [1.2.0.dev1] - 2020-02-03
 
 Development release issued, to facilitate user testing before considering
