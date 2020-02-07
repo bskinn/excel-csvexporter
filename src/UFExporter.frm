@@ -442,8 +442,12 @@ Private Function getHeaderRangeAddress() As String
     '
     ' Or, if header export is deselected, report accordingly
     
+    Dim headerRange As Range
+    
+    Set headerRange = getHeaderRange
+    
     If ChBxHeaderRows.Value Then
-        If checkHeaderRowValues Then
+        If Not headerRange Is Nothing And checkHeaderRowValues Then
             getHeaderRangeAddress = getHeaderRange.Address( _
                         RowAbsolute:=False, ColumnAbsolute:=False _
             )
