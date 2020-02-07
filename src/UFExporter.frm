@@ -43,6 +43,7 @@ Attribute appn.VB_VarHelpID = -1
 Const NoFolderStr As String = "<none>"
 Const InvalidSelStr As String = "<invalid selection>"
 Const NoHeaderRngStr As String = "<no header>"
+Const BadHeaderDefStr As String = "<invalid definition>"
 
 
 ' =====  GLOBALS  =====
@@ -442,13 +443,30 @@ Private Function getHeaderRangeAddress() As String
     '
     ' Or, if header export is deselected, report accordingly
     
+    Dim headerRange As Range
+    
+    ' Store the return value from retrieving the header range
+    Set headerRange = getHeaderRange
+    
     If ChBxHeaderRows.Value Then
-        If checkHeaderRowValues Then
+        ' Header range has to be defined in order for there to be
+        ' an address to return. The validity of the header row
+        ' definition in the userform is already checked
+        ' within getHeaderRange, and so it doesn't need(?) to be
+        ' checked again here.
+        If Not headerRange Is Nothing Then
             getHeaderRangeAddress = getHeaderRange.Address( _
                         RowAbsolute:=False, ColumnAbsolute:=False _
             )
         Else
-            getHeaderRangeAddress = InvalidSelStr
+            ' Though, it's clearer to change the error message in the display box
+            ' depending on whether the header definition is invalid,
+            ' or if the actual range selection on ActiveSheet is bad
+            If Not checkHeaderRowValues Then
+                getHeaderRangeAddress = BadHeaderDefStr
+            Else
+                getHeaderRangeAddress = InvalidSelStr
+            End If
         End If
     Else
         getHeaderRangeAddress = NoHeaderRngStr
