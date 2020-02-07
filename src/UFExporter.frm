@@ -365,12 +365,33 @@ Private Sub setExportRange()
     ' be set to Nothing, which twigs the error-state check in
     ' setExportEnabled and setExportRangeText
     
+    Dim isSheetEmpty As Boolean
+    
+    ' Detect if the sheet is *actually* completely empty
+    ' .UsedRange returns Range($A$1) rather than Nothing, if
+    ' sheet is completely empty
+    With Selection.Parent
+        If .UsedRange.Address = "$A$1" And IsEmpty(.UsedRange) Then
+            isSheetEmpty = True
+        Else
+            isSheetEmpty = False
+        End If
+    End With
+    
     If Selection.Areas.Count <> 1 Then
         Set ExportRange = Nothing
     Else
+        ' Handle if entire rows or columns (or both) are selected
         If Selection.Address = Selection.EntireRow.Address Or _
-                Selection.Address = Selection.EntireColumn.Address Then
-            Set ExportRange = Intersect(Selection, Selection.Parent.UsedRange)
+                    Selection.Address = Selection.EntireColumn.Address Then
+            If isSheetEmpty Then
+                ' There's definitely no content to be intersected with
+                ' the selection! This copes with the above "$A$1" return
+                ' from .UsedRange.
+                Set ExportRange = Nothing
+            Else
+                Set ExportRange = Intersect(Selection, Selection.Parent.UsedRange)
+            End If
         Else
             Set ExportRange = Selection
         End If
