@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 
+### [1.2.0] - 2020-05-29
+
+#### Added
+
+- Implemented option for exporting data values surrounded by user-definable quotes.
+  User can select whether to quote all exported values, or just
+  non-numeric values (as determined by VBA's `IsNumeric` built-in).
+
+
 ### [1.2.0.dev2] - 2020-02-07
 
 #### Fixed
@@ -31,6 +40,7 @@ the below new features as "final".
   now provided
 - An option is now provided to export the cells from one or more rows on
   the active sheet above/below the exported data block as "header row(s)"
+
 
 ### [1.1.0] - 2019-01-08
 
@@ -63,6 +73,7 @@ the below new features as "final".
   if triggered when a chart-sheet is active
 - Error handling added around folder selection and output file opening
   for write/append
+
 
 ### [1.0.0] - 2016-01-30
 
