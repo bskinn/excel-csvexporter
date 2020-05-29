@@ -1,5 +1,4 @@
 Attribute VB_Name = "Exporter"
-
 ' # ------------------------------------------------------------------------------
 ' # Name:        Exporter.bas
 ' # Purpose:     Helper module for launching the CSV Exporter add-in

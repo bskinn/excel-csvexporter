@@ -1,10 +1,10 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} UFExporter 
    Caption         =   "Export Data Range"
-   ClientHeight    =   5955
+   ClientHeight    =   6090
    ClientLeft      =   45
    ClientTop       =   375
-   ClientWidth     =   4560
+   ClientWidth     =   4755
    OleObjectBlob   =   "UFExporter.frx":0000
    ShowModal       =   0   'False
    StartUpPosition =   1  'CenterOwner
@@ -14,9 +14,6 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-
-
-
 ' # ------------------------------------------------------------------------------
 ' # Name:        UFExporter.frm
 ' # Purpose:     Core UserForm for the CSV Exporter Excel VBA Add-In
@@ -602,7 +599,21 @@ Private Sub writeCSV(dataRg As Range, tStrm As TextStream, nFormat As String, _
                 ' visible or if hidden output indicated
                 If ChBxHiddenCols.Value Or _
                         Not dataRg.Cells(idxRow, idxCol).EntireColumn.Hidden Then
-                    workStr = workStr & Format(dataRg.Cells(idxRow, idxCol).Value, nFormat)
+                    Set cel = dataRg.Cells(idxRow, idxCol)
+                    
+                    ' Output value to CSV with surrounding quotes if indicated
+                    If ( _
+                        ChBxQuote.Value And ( _
+                            OpBtnQuoteAll.Value _
+                            Or (OpBtnQuoteNonnum.Value And Not IsNumeric(cel.Value)) _
+                        ) _
+                    ) Then
+                        workStr = workStr & TxBxQuoteChar.Value & _
+                                Format(cel.Value, nFormat) & TxBxQuoteChar.Value
+                    Else
+                        workStr = workStr & Format(dataRg.Cells(idxRow, idxCol).Value, nFormat)
+                    End If
+                    
                     workStr = workStr & Separator
                 End If
             Next idxCol
