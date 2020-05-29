@@ -1,10 +1,10 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} UFExporter 
    Caption         =   "Export Data Range"
-   ClientHeight    =   4080
+   ClientHeight    =   6090
    ClientLeft      =   45
    ClientTop       =   375
-   ClientWidth     =   4560
+   ClientWidth     =   4755
    OleObjectBlob   =   "UFExporter.frx":0000
    ShowModal       =   0   'False
    StartUpPosition =   1  'CenterOwner
@@ -14,7 +14,6 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-
 ' # ------------------------------------------------------------------------------
 ' # Name:        UFExporter.frm
 ' # Purpose:     Core UserForm for the CSV Exporter Excel VBA Add-In
@@ -23,7 +22,7 @@ Attribute VB_Exposed = False
 ' #                bskinn@alum.mit.edu
 ' #
 ' # Created:     24 Jan 2016
-' # Copyright:   (c) Brian Skinn 2016-2019
+' # Copyright:   (c) Brian Skinn 2016-2020
 ' # License:     The MIT License; see "LICENSE.txt" for full license terms.
 ' #
 ' #       http://www.github.com/bskinn/excel-csvexporter
@@ -40,6 +39,8 @@ Attribute appn.VB_VarHelpID = -1
 ' =====  CONSTANTS  =====
 Const NoFolderStr As String = "<none>"
 Const InvalidSelStr As String = "<invalid selection>"
+Const NoHeaderRngStr As String = "<no header>"
+Const BadHeaderDefStr As String = "<invalid definition>"
 
 
 ' =====  GLOBALS  =====
@@ -47,6 +48,7 @@ Dim WorkFolder As Folder
 Dim fs As FileSystemObject
 Dim ExportRange As Range
 Dim HiddenByChart As Boolean
+Dim wsf As worksheetfunction
 
 
 ' =====  EVENT-ENABLED APPLICATION EVENTS  =====
@@ -174,7 +176,14 @@ Private Sub BtnExport_Click()
     End If
     
     ' Ready to go. Pass info to writing function
-    writeCSV ExportRange, tStrm, TxBxFormat.Value, TxBxSep.Value
+    ' Header first (always exporting, even if hidden; but only if enabled)...
+    If ChBxHeaderRows.Value Then
+        writeCSV dataRg:=getHeaderRange, tStrm:=tStrm, nFormat:=TxBxFormat.Value, _
+                Separator:=TxBxSep.Value, overrideHidden:=True
+    End If
+    ' ... then body (obeying 'hidden cell export' settings)
+    writeCSV dataRg:=ExportRange, tStrm:=tStrm, nFormat:=TxBxFormat.Value, _
+            Separator:=TxBxSep.Value, overrideHidden:=False
     
     ' Close the stream
     tStrm.Close
@@ -220,6 +229,42 @@ Private Sub BtnSelectFolder_Click()
     ' Update the Export button
     setExportEnabled
 
+End Sub
+
+Private Sub ChBxHeaderRows_Change()
+    ' Set the header rows box colors appropriately
+    setHeaderTBxColors
+    
+    ' Update the range report box
+    setExportRangeText
+    
+    ' Update Export button
+    setExportEnabled
+    
+End Sub
+
+Private Sub TBxHeaderStart_Change()
+    ' Set header rows box colors
+    setHeaderTBxColors
+    
+    ' Update the range report box
+    setExportRangeText
+    
+    ' Update export button
+    setExportEnabled
+    
+End Sub
+
+Private Sub TBxHeaderStop_Change()
+    ' Set header rows box colors
+    setHeaderTBxColors
+    
+    ' Update the range report box
+    setExportRangeText
+    
+    ' Update export button
+    setExportEnabled
+    
 End Sub
 
 Private Sub TxBxFilename_Change()
@@ -280,6 +325,9 @@ Private Sub UserForm_Initialize()
     ' General is default number format
     TxBxFormat.Value = "@"
     
+    ' Bind the worksheet function object
+    Set wsf = Application.worksheetfunction
+    
 End Sub
 
 
@@ -294,7 +342,8 @@ Private Sub setExportEnabled()
         validFilename(TxBxFilename.Value) And _
         Len(TxBxFormat.Value) > 0 And _
         (Not WorkFolder Is Nothing) And _
-        (Not ExportRange Is Nothing) _
+        (Not ExportRange Is Nothing) And _
+        (Not (ChBxHeaderRows.Value And Not checkHeaderRowValues)) _
     ) Then
         BtnExport.Enabled = True
     Else
@@ -314,12 +363,33 @@ Private Sub setExportRange()
     ' be set to Nothing, which twigs the error-state check in
     ' setExportEnabled and setExportRangeText
     
+    Dim isSheetEmpty As Boolean
+    
+    ' Detect if the sheet is *actually* completely empty
+    ' .UsedRange returns Range($A$1) rather than Nothing, if
+    ' sheet is completely empty
+    With Selection.Parent
+        If .UsedRange.Address = "$A$1" And IsEmpty(.UsedRange) Then
+            isSheetEmpty = True
+        Else
+            isSheetEmpty = False
+        End If
+    End With
+    
     If Selection.Areas.Count <> 1 Then
         Set ExportRange = Nothing
     Else
+        ' Handle if entire rows or columns (or both) are selected
         If Selection.Address = Selection.EntireRow.Address Or _
-                Selection.Address = Selection.EntireColumn.Address Then
-            Set ExportRange = Intersect(Selection, Selection.Parent.UsedRange)
+                    Selection.Address = Selection.EntireColumn.Address Then
+            If isSheetEmpty Then
+                ' There's definitely no content to be intersected with
+                ' the selection! This copes with the above "$A$1" return
+                ' from .UsedRange.
+                Set ExportRange = Nothing
+            Else
+                Set ExportRange = Intersect(Selection, Selection.Parent.UsedRange)
+            End If
         Else
             Set ExportRange = Selection
         End If
@@ -337,6 +407,9 @@ Private Sub setExportRangeText()
     
     workStr = "  Worksheet: " _
         & Selection.Parent.Name _
+        & Chr(10) _
+        & "  Header: " _
+        & getHeaderRangeAddress _
         & Chr(10) _
         & "  Range: " _
         & getExportRangeAddress
@@ -361,11 +434,141 @@ Private Function getExportRangeAddress() As String
     
 End Function
 
+Private Function getHeaderRangeAddress() As String
+    ' Helper for concise generation of the header range address
+    ' without dollar signs.
+    '
+    ' Or, if header export is deselected, report accordingly
+    
+    Dim headerRange As Range
+    
+    ' Store the return value from retrieving the header range
+    Set headerRange = getHeaderRange
+    
+    If ChBxHeaderRows.Value Then
+        ' Header range has to be defined in order for there to be
+        ' an address to return. The validity of the header row
+        ' definition in the userform is already checked
+        ' within getHeaderRange, and so it doesn't need(?) to be
+        ' checked again here.
+        If Not headerRange Is Nothing Then
+            getHeaderRangeAddress = getHeaderRange.Address( _
+                        RowAbsolute:=False, ColumnAbsolute:=False _
+            )
+        Else
+            ' Though, it's clearer to change the error message in the display box
+            ' depending on whether the header definition is invalid,
+            ' or if the actual range selection on ActiveSheet is bad
+            If Not checkHeaderRowValues Then
+                getHeaderRangeAddress = BadHeaderDefStr
+            Else
+                getHeaderRangeAddress = InvalidSelStr
+            End If
+        End If
+    Else
+        getHeaderRangeAddress = NoHeaderRngStr
+    End If
+    
+End Function
 
+Private Function getHeaderRange() As Range
+    ' Helper to actually generate a reference to the header range,
+    ' given the currently set export range.
+    '
+    ' If any of the form is in a state where the header range
+    ' can't be defined, returns Nothing.
+    
+    Dim headerFullRows As Range
+    Dim startRow As Long, stopRow As Long
+    Dim errNum As Long
+    
+    Set getHeaderRange = Nothing
+    
+    If Not ChBxHeaderRows.Value Then Exit Function
+    If Not checkHeaderRowValues Then Exit Function
+    If ExportRange Is Nothing Then Exit Function
+    
+    ' Handle the case where the start value is blank (implicit start at '1')
+    On Error Resume Next
+        startRow = CLng(TBxHeaderStart.Value)
+    errNum = Err.Number: Err.Clear: On Error GoTo 0
+    
+    Select Case errNum
+    Case 13
+        startRow = 1
+    End Select
+    
+    ' Stop row shouldn't(?) need special handling, given that it's already
+    ' proofed by the above checks
+    stopRow = CLng(TBxHeaderStop.Value)
+    
+    Set headerFullRows = ExportRange.Worksheet.Rows(startRow)
+    Set headerFullRows = headerFullRows.Resize(stopRow - startRow + 1)
+    
+    Set getHeaderRange = Intersect(ExportRange.EntireColumn, headerFullRows)
+
+End Function
+
+Private Function checkHeaderRowValues() As Boolean
+    ' Proofreads the values in the row start/stop for the header inclusion
+    '
+    ' True means values are ok (numbers, and start <= stop)
+    ' False means something (unspecified) is wrong;
+    '  could be non-numeric, or start > stop
+    
+    Dim errNum As Long, startRow As Long, stopRow As Long
+    Dim startStr As String, stopStr As String
+    
+    ' Cope with empty textboxes
+    If TBxHeaderStart.Value = "" Then
+        startStr = "0"
+    Else
+        startStr = TBxHeaderStart.Value
+    End If
+    
+    If TBxHeaderStop.Value = "" Then
+        stopStr = "0"
+    Else
+        stopStr = TBxHeaderStop.Value
+    End If
+    
+    ' Default to failure
+    checkHeaderRowValues = False
+    
+    On Error Resume Next
+        startRow = CInt(startStr)
+        stopRow = CInt(stopStr)
+    errNum = Err.Number: Err.Clear: On Error GoTo 0
+    
+    ' One or more non-numeric values
+    If errNum <> 0 Then Exit Function
+    
+    ' Might as well make it so an empty start row means row 1
+    startRow = Application.worksheetfunction.Max(1, startRow)
+    
+    ' Value check
+    If startRow > stopRow Then Exit Function
+    
+    ' Checks ok; return True
+    checkHeaderRowValues = True
+    
+End Function
+
+Private Sub setHeaderTBxColors()
+    ' Helper encapsulating the color setting logic
+    If checkHeaderRowValues Then
+        TBxHeaderStart.ForeColor = RGB(0, 0, 0)
+        TBxHeaderStop.ForeColor = RGB(0, 0, 0)
+    Else
+        TBxHeaderStart.ForeColor = RGB(255, 0, 0)
+        TBxHeaderStop.ForeColor = RGB(255, 0, 0)
+    End If
+    
+End Sub
 ' =====  HELPER FUNCTIONS  =====
 
 Private Sub writeCSV(dataRg As Range, tStrm As TextStream, nFormat As String, _
-                    Separator As String)
+                    Separator As String, overrideHidden As Boolean)
     
     ' Encapsulates the process of actually writing the selected data to
     ' CSV on-disk.
@@ -386,31 +589,51 @@ Private Sub writeCSV(dataRg As Range, tStrm As TextStream, nFormat As String, _
     
     ' Loop
     For idxRow = 1 To dataRg.Rows.Count
-        ' Reset the working string
-        workStr = ""
-        
-        For idxCol = 1 To dataRg.Columns.Count
-            ' Tag on the value and a separator
-            workStr = workStr & Format(dataRg.Cells(idxRow, idxCol).Value, nFormat)
-            workStr = workStr & Separator
-        Next idxCol
-        
-        ' Cull the trailing separator
-        workStr = Left(workStr, Len(workStr) - Len(Separator))
-        
-        ' Write the line, with error-handling
-        On Error Resume Next
-            tStrm.WriteLine workStr
-        errNum = Err.Number: Err.Clear: On Error GoTo 0
-        
-        If errNum <> 0 Then
-            MsgBox "Unknown error occurred while writing data line", _
-                    vbOKOnly + vbCritical, _
-                    "Error"
+        ' Only output visible rows unless hidden output indicated
+        If overrideHidden Or ChBxHiddenRows.Value Or Not dataRg.Cells(idxRow, 1).EntireRow.Hidden Then
+            ' Reset the working string
+            workStr = ""
             
-            Exit Sub
+            For idxCol = 1 To dataRg.Columns.Count
+                ' Tag on the value and a separator, but only if
+                ' visible or if hidden output indicated
+                If ChBxHiddenCols.Value Or _
+                        Not dataRg.Cells(idxRow, idxCol).EntireColumn.Hidden Then
+                    Set cel = dataRg.Cells(idxRow, idxCol)
+                    
+                    ' Output value to CSV with surrounding quotes if indicated
+                    If ( _
+                        ChBxQuote.Value And ( _
+                            OpBtnQuoteAll.Value _
+                            Or (OpBtnQuoteNonnum.Value And Not IsNumeric(cel.Value)) _
+                        ) _
+                    ) Then
+                        workStr = workStr & TxBxQuoteChar.Value & _
+                                Format(cel.Value, nFormat) & TxBxQuoteChar.Value
+                    Else
+                        workStr = workStr & Format(dataRg.Cells(idxRow, idxCol).Value, nFormat)
+                    End If
+                    
+                    workStr = workStr & Separator
+                End If
+            Next idxCol
+            
+            ' Cull the trailing separator
+            workStr = Left(workStr, Len(workStr) - Len(Separator))
+            
+            ' Write the line, with error-handling
+            On Error Resume Next
+                tStrm.WriteLine workStr
+            errNum = Err.Number: Err.Clear: On Error GoTo 0
+            
+            If errNum <> 0 Then
+                MsgBox "Unknown error occurred while writing data line", _
+                        vbOKOnly + vbCritical, _
+                        "Error"
+                
+                Exit Sub
+            End If
         End If
-        
     Next idxRow
     
 End Sub
@@ -448,4 +671,5 @@ Private Function isSeparatorInData(dataRg As Range, nFormat As String, _
         End If
     Next cel
 End Function
+
 

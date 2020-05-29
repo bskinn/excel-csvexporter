@@ -1,5 +1,4 @@
 Attribute VB_Name = "Exporter"
-
 ' # ------------------------------------------------------------------------------
 ' # Name:        Exporter.bas
 ' # Purpose:     Helper module for launching the CSV Exporter add-in
@@ -8,7 +7,7 @@ Attribute VB_Name = "Exporter"
 ' #                bskinn@alum.mit.edu
 ' #
 ' # Created:     24 Jan 2016
-' # Copyright:   (c) Brian Skinn 2016-2019
+' # Copyright:   (c) Brian Skinn 2016-2020
 ' # License:     The MIT License; see "LICENSE.txt" for full license terms.
 ' #
 ' #       http://www.github.com/bskinn/excel-csvexporter
