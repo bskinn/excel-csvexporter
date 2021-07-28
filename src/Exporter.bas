@@ -7,7 +7,7 @@ Attribute VB_Name = "Exporter"
 ' #                bskinn@alum.mit.edu
 ' #
 ' # Created:     24 Jan 2016
-' # Copyright:   (c) Brian Skinn 2016-2020
+' # Copyright:   (c) Brian Skinn 2016-2021
 ' # License:     The MIT License; see "LICENSE.txt" for full license terms.
 ' #
 ' #       http://www.github.com/bskinn/excel-csvexporter
@@ -16,9 +16,9 @@ Attribute VB_Name = "Exporter"
 
 Option Explicit
 
-Sub showForm()
-Attribute showForm.VB_Description = "Load the CSVExporter application."
-Attribute showForm.VB_ProcData.VB_Invoke_Func = "C\n14"
+Sub showCSVExporterForm()
+Attribute showCSVExporterForm.VB_Description = "Load the CSVExporter application."
+Attribute showCSVExporterForm.VB_ProcData.VB_Invoke_Func = "C\n14"
     UFExporter.Show
 End Sub
 

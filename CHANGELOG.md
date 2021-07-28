@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 
+### [1.2.1] - 2021-07-28
+
+#### Internal
+
+- Renamed the `Sub` in `Exporter.bas` that launches the CSV Exporter
+  `UserForm` to the less-anonymous `showCSVExporterForm()`.
+
+
 ### [1.2.0] - 2020-05-29
 
 #### Added
