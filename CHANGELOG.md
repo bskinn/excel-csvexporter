@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 
+### [1.2.2] - 2022-03-10
+
+#### Fixed
+
+- Fixed #36, truncation of cell contents to 255 characters by `Format`,
+  by skipping the call to `Format(...)` when `Len(cel.Value)` is greater
+  than 250. (Content lengths this long ***should*** only occur when the
+  cell contains free text for which `Format()` is a no-op anyways.)
+
+
 ### [1.2.1] - 2021-07-28
 
 #### Internal

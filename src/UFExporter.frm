@@ -583,7 +583,7 @@ Private Sub writeCSV(dataRg As Range, tStrm As TextStream, nFormat As String, _
 
     Dim cel As Range
     Dim idxRow As Long, idxCol As Long
-    Dim workStr As String
+    Dim workStr As String, outText As String
     Dim errNum As Long
 
     
@@ -600,6 +600,12 @@ Private Sub writeCSV(dataRg As Range, tStrm As TextStream, nFormat As String, _
                 If ChBxHiddenCols.Value Or _
                         Not dataRg.Cells(idxRow, idxCol).EntireColumn.Hidden Then
                     Set cel = dataRg.Cells(idxRow, idxCol)
+                    If Len(CStr(cel)) > 250 Then
+                        ' This *HAS* to be free text..... right??
+                        outText = cel.Value
+                    Else
+                        outText = Format(cel.Value, nFormat)
+                    End If
                     
                     ' Output value to CSV with surrounding quotes if indicated
                     If ( _
@@ -609,9 +615,9 @@ Private Sub writeCSV(dataRg As Range, tStrm As TextStream, nFormat As String, _
                         ) _
                     ) Then
                         workStr = workStr & TxBxQuoteChar.Value & _
-                                Format(cel.Value, nFormat) & TxBxQuoteChar.Value
+                                outText & TxBxQuoteChar.Value
                     Else
-                        workStr = workStr & Format(dataRg.Cells(idxRow, idxCol).Value, nFormat)
+                        workStr = workStr & outText
                     End If
                     
                     workStr = workStr & Separator
